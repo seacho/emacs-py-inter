@@ -174,44 +174,44 @@ static PyObject *capture_exec_file_input(const char *code_utf8) {
     return merged; // new ref
 }
 
-static void init_python_runtime(void)
-{
-    PyStatus status;
-    PyConfig config;
+/* static void init_python_runtime(void) */
+/* { */
+/*     PyStatus status; */
+/*     PyConfig config; */
 
-    PyConfig_InitPythonConfig(&config);
+/*     PyConfig_InitPythonConfig(&config); */
 
-    /* Emacs GUI 启动时，不要依赖环境变量 */
-    config.use_environment = 0;
+/*     /\* Emacs GUI 启动时，不要依赖环境变量 *\/ */
+/*     config.use_environment = 0; */
 
-    /* 让 Python 自己算 sys.path / site */
-    config.site_import = 1;
+/*     /\* 让 Python 自己算 sys.path / site *\/ */
+/*     config.site_import = 1; */
 
-    /* 程序名（很重要） */
-    status = PyConfig_SetString(&config, &config.program_name, L"python3");
-    if (PyStatus_Exception(status)) goto fail;
+/*     /\* 程序名（很重要） *\/ */
+/*     status = PyConfig_SetString(&config, &config.program_name, L"python3"); */
+/*     if (PyStatus_Exception(status)) goto fail; */
 
-#if __APPLE__
-    /* Homebrew Python（按你的实际版本调整） */
-    status = PyConfig_SetString(
-        &config,
-        &config.home,
-        L"/opt/homebrew/Frameworks/Python.framework/Versions/3.12"
-    );
-    if (PyStatus_Exception(status)) goto fail;
-#endif
+/* #if __APPLE__ */
+/*     /\* Homebrew Python（按你的实际版本调整） *\/ */
+/*     status = PyConfig_SetString( */
+/*         &config, */
+/*         &config.home, */
+/*         L"" */
+/*     ); */
+/*     if (PyStatus_Exception(status)) goto fail; */
+/* #endif */
 
-    status = Py_InitializeFromConfig(&config);
-    if (PyStatus_Exception(status)) goto fail;
+/*     status = Py_InitializeFromConfig(&config); */
+/*     if (PyStatus_Exception(status)) goto fail; */
 
-    PyConfig_Clear(&config);
-    return;
+/*     PyConfig_Clear(&config); */
+/*     return; */
 
-fail:
-    PyConfig_Clear(&config);
-    /* 这里不要 Py_ExitStatus(status)，Emacs 进程不能 exit */
-    fprintf(stderr, "[pyembed] Python init failed\n");
-}
+/* fail: */
+/*     PyConfig_Clear(&config); */
+/*     /\* 这里不要 Py_ExitStatus(status)，Emacs 进程不能 exit *\/ */
+/*     fprintf(stderr, "[pyembed] Python init failed\n"); */
+/* } */
 
 
 /* ---------------------------
@@ -224,7 +224,7 @@ static emacs_value F_py_init(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 
     if (!Py_IsInitialized()) {
         Py_Initialize();
-        init_python_runtime();
+        /* init_python_runtime(); */
         // In embedded environments, ensure GIL is ready (harmless on new Pythons)
         PyEval_InitThreads();
     }

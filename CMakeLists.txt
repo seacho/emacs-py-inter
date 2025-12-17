@@ -36,7 +36,8 @@ if(NOT EMACS_INCLUDE_DIR)
 endif()
 
 # ---------------- Module ----------------
-add_library(pyembed MODULE pyembed-module.c)
+# add_library(pyembed MODULE pyembed-module.c)
+add_executable(pyembed test.c)
 
 target_include_directories(pyembed PRIVATE
     ${EMACS_INCLUDE_DIR}
