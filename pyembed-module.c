@@ -195,8 +195,6 @@ static void init_python_runtime(const char* venv_path)
     status = Py_InitializeFromConfig(&config);
     if (PyStatus_Exception(status)) goto fail;
 
-
-    Py_Finalize();
     PyConfig_Clear(&config);
     return;
 
@@ -204,6 +202,7 @@ fail:
     PyConfig_Clear(&config);
     /* 这里不要 Py_ExitStatus(status)，Emacs 进程不能 exit */
     fprintf(stderr, "[pyembed] Python init failed\n");
+    return ;
 }
 
 
@@ -214,14 +213,19 @@ fail:
 static emacs_value F_py_init(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data) {
     (void)nargs; (void)args; (void)data;
 
+    const char *venv_path = NULL;
+
+    if (nargs == 1) {
+        venv_path = emacs_string_to_c(env, args[0]);
+    }
 
     if (!Py_IsInitialized()) {
         // Py_Initialize();
 
         
-        init_python_runtime();
+        init_python_runtime(venv_path);
         // In embedded environments, ensure GIL is ready (harmless on new Pythons)
-        PyEval_InitThreads();
+        // PyEval_InitThreads();
     }
     PyGILState_STATE g = PyGILState_Ensure();
     

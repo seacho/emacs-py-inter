@@ -1,67 +1,48 @@
-;;; pyembed.el
+;;; pyembed.el --- Embedded Python core -*- lexical-binding: t; -*-
 
 (defgroup pyembed nil
-  "Embedded Python in Emacs."
-  :group 'languages)
+  "Embedded Python via Emacs dynamic module."
+  :group 'tools)
+
+(defcustom pyembed-module-path
+  (expand-file-name "pyembed.so" (file-name-directory load-file-name))
+  "Path to pyembed dynamic module."
+  :type 'file
+  :group 'pyembed)
 
 (defvar pyembed--initialized nil)
 
-(defvar pyembed-buffer-name "*Python-Embedded*")
+(defun pyembed--load-module ()
+  (unless (featurep 'pyembed-core)
+    (unless (file-exists-p pyembed-module-path)
+      (error "[pyembed] module not found: %s" pyembed-module-path))
+    (module-load pyembed-module-path)
+    (require 'pyembed-core)))
 
-(defun pyembed--ensure-initialized ()
-  "Ensure Python interpreter is initialized."
+(defun pyembed-init-runtime (&optional venv)
+  "Initialize embedded Python runtime once.
+Optional VENV is a virtualenv root directory."
+  (pyembed--load-module)
+  (when pyembed--initialized
+    (error "[pyembed] Python runtime already initialized"))
+  (let ((ok (if venv (py-init venv) (py-init))))
+    (unless ok
+      (error "[pyembed] py-init failed")))
+  (setq pyembed--initialized t))
+
+(defun pyembed-exec (code)
+  "Execute Python code using embedded runtime."
   (unless pyembed--initialized
-    (condition-case err
-        (progn
-          (pyembed--initialize)
-          (setq pyembed--initialized t))
-      (error
-       (message "Failed to initialize embedded Python: %s" err)
-       (error "PyEmbed init failed")))))
+    (error "[pyembed] Python not initialized"))
+  (py-exec code))
 
-;;;###autoload
-(defun pyembed-start ()
-  "Start embedded Python REPL."
+(defun pyembed-last-error ()
   (interactive)
-  (pyembed--ensure-initialized)
-  (switch-to-buffer (get-buffer-create pyembed-buffer-name))
-  (setq buffer-read-only nil)
-  (erase-buffer)
-  (insert "Embedded Python REPL (CPython via Emacs module)\n")
-  (insert "Type Python code and press RET.\n\n")
-  (goto-char (point-max))
-  (read-only-mode 1))
-
-(defun pyembed--repl-send ()
-  "Send current line to embedded Python."
-  (interactive)
-  (let ((line (buffer-substring-no-properties
-               (line-beginning-position)
-               (line-end-position))))
-    (unless (string-empty-p line)
-      (pyembed--ensure-initialized)
-      (let ((result (pyembed--eval line)))
-        (with-current-buffer pyembed-buffer-name
-          (setq buffer-read-only nil)
-          (goto-char (point-max))
-          (insert "\n>>> " line "\n")
-          (insert result "\n")
-          (goto-char (point-max))
-          (read-only-mode 1))))))
-
-;; Minor mode for REPL buffer
-(define-minor-mode pyembed-repl-mode
-  "Minor mode for PyEmbed REPL."
-  :lighter " PyEmbed"
-  (if pyembed-repl-mode
-      (progn
-        (setq-local comint-input-sender 'pyembed--repl-send)
-        (setq-local comint-prompt-regexp "^>>> ")
-        (setq-local comint-get-old-input 'comint-get-line))
-    ))
-
-;; Auto-enable in REPL buffer
-(add-hook 'pyembed-start-hook
-          (lambda () (pyembed-repl-mode 1)))
+  (let ((e (py-last-error)))
+    (if (string-empty-p e)
+        (message "[pyembed] no error")
+      (with-help-window "*PyEmbed Error*"
+        (princ e)))))
 
 (provide 'pyembed)
+;;; pyembed.el ends here
